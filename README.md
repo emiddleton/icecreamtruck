@@ -166,7 +166,7 @@ on the ransack site at https://github.com/activerecord-hackery/ransack#search-ma
 
 order can be `desc` or `asc`
 
-### Paging - optional
+#### Paging - optional
 
 ```
 'page=' + number
@@ -309,7 +309,7 @@ on the ransack site at https://github.com/activerecord-hackery/ransack#search-ma
 
 order can be `desc` or `asc`
 
-### Paging - optional
+#### Paging - optional
 
 ```
 'page=' + number
@@ -364,6 +364,8 @@ curl -v -H "Accept: application/json" \
 ```
 
 ### Complete order by id
+
+* complete an order that has been payed for.
 
 ```
 Request
@@ -468,7 +470,7 @@ on the ransack site at https://github.com/activerecord-hackery/ransack#search-ma
 
 order can be `desc` or `asc`
 
-### Paging - optional
+#### Paging - optional
 
 ```
 'page=' + number
