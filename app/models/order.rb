@@ -45,14 +45,24 @@ class Order < ApplicationRecord
   end
 
   def complete_sale!
-    retries ||= 0
-    transaction do
-      order_items.each(&:account_for_sales!)
-      update!(status: :completed)
+    if completed?
+      errors.add(:base, 'Already completed.')
+      raise ActiveRecord::RecordInvalid, self
+    elsif !payed?
+      errors.add(:base, 'Payment must be completed.')
+      raise ActiveRecord::RecordInvalid, self
     end
-  rescue StandardError => e
-    retry if (retries += 1) < 3
-    raise e
+
+    begin
+      retries ||= 0
+      transaction do
+        order_items.each(&:account_for_sales!)
+        update!(status: :completed)
+      end
+    rescue StandardError => e
+      retry if (retries += 1) < 3
+      raise e
+    end
   end
 
   def cancel!

@@ -29,4 +29,8 @@ class OrderItem < ApplicationRecord
   def revert_sales!
     item.decrement!(:sales, quantity * item.price)
   end
+
+  def attributes
+    { 'item_id' => nil, 'name' => nil, 'quantity' => nil }
+  end
 end

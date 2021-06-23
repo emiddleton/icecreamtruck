@@ -39,5 +39,6 @@ module Icecreamtruck
     # Skip views, helpers and assets when generating a new resource.
     config.active_record.schema_format = :sql
     config.api_only = true
+    config.filter_parameters += %i[card_number expiry_date]
   end
 end

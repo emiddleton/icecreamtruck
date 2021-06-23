@@ -91,6 +91,7 @@ CREATE TABLE public.orders (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     status public.order_status NOT NULL,
+    request_id uuid NOT NULL,
     transaction_id uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
@@ -158,6 +159,13 @@ CREATE INDEX index_order_items_on_item_id ON public.order_items USING btree (ite
 --
 
 CREATE INDEX index_order_items_on_order_id ON public.order_items USING btree (order_id);
+
+
+--
+-- Name: index_unique_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_unique_order ON public.orders USING btree (request_id);
 
 
 --

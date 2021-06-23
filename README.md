@@ -118,3 +118,399 @@ docker-compose rm --force web-api && \
 docker-compose kill && \
   docker-compose rm
 ```
+
+## API
+
+The API has six endpoints listed below.  The API calls are document in more detail below.
+```
+        Prefix Verb URI Pattern                    Controller#Action
+  cancel_order PUT  /orders/:id/cancel(.:format)   orders#cancel
+complete_order PUT  /orders/:id/complete(.:format) orders#complete
+        orders GET  /orders(.:format)              orders#index
+               POST /orders(.:format)              orders#create
+         items GET  /items(.:format)               items#index
+         sales GET  /sales(.:format)               items#sales
+```
+
+All requests should use the following headers
+
+```
+Accept:       application/json
+Content-type: application/json
+```
+
+Items and Orders use a database generated UUID for their `id`.  Monetary amounts are given as integers in the
+smallest indivisible unit for a given currency (eg. 1 yen for JPY and 1 cent for USD).
+
+### Get list of items
+
+Gets a list of all items on sale with optional filtering, sorting and paging.
+This list will include all items even those that are not in stock
+
+#### Filters - optional
+
+Query filters are given as url query parameters.  They have the form
+
+```
+'q[' + attribute '_' + predicate + ']=' value
+```
+
+where attribute is one of `name`,`price` or `quantity` and the predicates are any of those listed
+on the ransack site at https://github.com/activerecord-hackery/ransack#search-matchers
+
+#### Sort order - optional
+
+```
+'q[s]' + attribute + '%20' + order
+```
+
+order can be `desc` or `asc`
+
+### Paging - optional
+
+```
+'page=' + number
+```
+
+```
+Request
+  Method:   GET
+  URL:      /items
+
+  Optional Filter
+    QUERY:  q[attribute_predicate]=value
+    SORT:   q[s]=attribute%20desc
+
+Response:
+
+  Headers:
+            Current-Page: The page that was returned
+            Page-Items:   Number of items per page
+            Total-Pages:  Total number of pages
+            Total-Count:  Total number of scores
+
+  Body:     "[
+              {
+                "id": "ITEM_UUID",
+                "name": "ITEMS_NAME",
+                "price": PRICE_PER_ITEM,
+                "quantity": NUMBER_OF_ITEMS_IN_STOCK
+              }
+              ...
+            ]"
+```
+#### Usage
+
+* Getting list the first page of items whose name start with 'choc' in ascending alphabetic order.
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X GET -G http://localhost:3000/items \
+        -d "page=1&q[name_start]=choc&q[s]=name%20asc" | jq
+```
+
+### Make an order
+
+```
+Request
+  Method:   POST
+  URL:      /orders
+
+  BODY:     "{
+              "order": {
+                "name": "CUSTOMER_NAME",
+                "request_id": "UUID",
+                "order_items": [
+                  {
+                    "item_id": "ITEM_UUID",
+                    "name": "ITEM_NAME",
+                    "quantity": NUMBER_TO_PURCHASE
+                  },
+                  ...
+                ],
+                "payment" {
+                  "card_number": "CREDIT_CARD_NUMBER",
+                  "expiry_date": "CREDIT_CARD_EXPIRY_DATE"
+                }
+              }
+            }"
+
+Response:
+  Status:   200 OK   
+  Body:     "{
+              "order": {
+                "id": "ORDER_UUID",
+                "name": "CUSTOMER_NAME",
+                "request_id": "REQUEST_UUID",
+                "transaction_id": "TRANSACTION_UUID",
+                "created_at": "TIME_ORDER_WAS_MADE",
+                "updated_at": "LAST_UPDATE_TIME",
+                "order_items": [
+                  {
+                    "item_id": "ITEM_UUID",
+                    "name": "ITEM_NAME",
+                    "quantity": NUMBER_TO_PURCHASE
+                  },
+                  ...
+                }
+              }
+            }"
+
+Failure:
+  Status:   422 Unprocessable Entity
+  Body:     "{"message":"Validation failed: VALIDATION_FAILURE_MESSAGE"}
+
+  Status:   409 Unprocessable Entity
+  Body:     "{"message":"This order has already been received."}
+```
+#### Usage
+
+* request_id is a uuid and must be unique for each order (used to avoid orders being repeat posted)
+* item_id is the uuid for an item returned from the items list api above
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X POST -d '{"order":{
+          "name": "Mark",
+          "request_id": "8b51b805-c1b2-4121-be48-84f99e5bc9ee",
+          "order_items": [{
+            "item_id": "[ITEM_UUID]",
+            "quantity": 5
+          }],
+          "payment": {
+            "card_number":"6771-8981-0384-7613",
+            "expiry_date":"27-03"
+          }}}' \
+        http://localhost:3000/orders | jq
+```
+
+### Get list of all orders
+
+This list of all orders in all states with optional filtering, sorting and paging.
+
+#### Filters - optional
+
+Query filters are given as url query parameters.  They have the form
+
+```
+'q[' + attribute '_' + predicate + ']=' value
+```
+
+where attribute is one of `request_id`, `name` or `status` and the predicates are any of those listed
+on the ransack site at https://github.com/activerecord-hackery/ransack#search-matchers
+
+#### Sort order - optional
+
+```
+'q[s]' + attribute + '%20' + order
+```
+
+order can be `desc` or `asc`
+
+### Paging - optional
+
+```
+'page=' + number
+```
+
+```
+Request
+  Method:   GET
+  URL:      /orders
+
+  Optional Filter
+    QUERY:  q[attribute_predicate]=value
+    SORT:   q[s]=attribute%20desc
+
+Response:
+
+  Headers:
+            Current-Page: The page that was returned
+            Page-Items:   Number of items per page
+            Total-Pages:  Total number of pages
+            Total-Count:  Total number of scores
+
+  Body:     "[
+              {
+                "id": "ORDER_UUID",
+                "name": "CUSTOMER_NAME",
+                "status": "ORDER_STATUS",
+                "request_id": "REQUEST_UUID",
+                "transaction_id": "TRANSACTION_UUID",
+                "created_at": "TIME_ORDER_WAS_MADE",
+                "updated_at": "LAST_UPDATE_TIME",
+                "order_items": [
+                  {
+                    "item_id": "ITEM_UUID",
+                    "quantity": NUMBER_PURCHASED
+                  },
+                  ...
+                ]
+              }
+              ...
+            ]"
+```
+#### Usage
+
+* get the first page of orders waiting to be delivered with oldest first
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X GET -G http://localhost:3000/orders \
+        -d "page=1&q[status_eq]=payed&q[s]=updated_at%20asc" | jq
+```
+
+### Complete order by id
+
+```
+Request
+  Method:   PUT
+  URL:      /orders/:ORDER_UUID/complete
+
+Response:
+  Status:   204 No Content
+
+Failure:
+  Status:   422 Unprocessable Entity
+            "{
+              "message": "Validation failed: Already completed."
+            }"
+
+  Status:   422 Unprocessable Entity
+  Body:     "{
+              "message": "Payment must be completed"
+            }"
+```
+
+#### Usage
+
+* you need to replace [ORDER_UUID] in the command below with one returned from the list of all orders
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -G http://localhost:3000/orders/[ORDER_UUID]/complete | jq
+```
+
+### Cancel order by id
+
+* Cancelling an order will refund any payment made and return all pre-reserved stock.
+* The API assumes that stock will be returned when order cancellation occurs.  In cases where this is
+  not possible the lost stock would be considered as spoilage and be removed from the listed stock through
+  and API for handling spoilage which is outside the scope of this problem.
+* If an order has a `paying` status when canceling its status will be changed to `check_refund`
+  pre-reserved stock will be returned but no payment refund will occur because it is not possible
+  to tell if payment was made.  In this case the user should use the orders transaction_id to check
+  with the payment provider to determine if a payment was made and a refund is necessary.
+
+```
+Request
+  Method:   PUT
+  URL:      /orders/:ORDER_UUID/cancel
+
+Response:
+  Status:   200 OK   
+  Body:     "{
+              "id": "ORDER_UUID",
+              "name": "CUSTOMER_NAME",
+              "status": "STATUS",
+              "request_id": "REQUEST_UUID",
+              "transaction_id": "TRANSACTION_UUID"
+              "created_at": "TIME_ORDER_WAS_MADE",
+              "updated_at": "LAST_UPDATE_TIME",
+              "order_items": [
+                {
+                  "item_id": "ITEM_UUID",
+                  "quantity": NUMBER_TO_PURCHASE
+                },
+                ...
+              }
+            }"
+
+Response:
+  Status:   204 No Content
+```
+
+#### Usage
+
+* you need to replace [ORDER_UUID] in the command below with one returned from the list of all orders
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -G http://localhost:3000/orders/[ORDER_UUID]/cancel | jq
+```
+
+### Get list of sales by item
+
+Gets a list of the sales for all items on sale with optional filtering, sorting and paging.
+This list will include all items even those that are not in stock
+
+#### Filters - optional
+
+Query filters are given as url query parameters.  They have the form
+
+```
+'q[' + attribute '_' + predicate + ']=' value
+```
+
+where attribute is one of `name`,`price`,`sales` or `quantity` and the predicates are any of those listed
+on the ransack site at https://github.com/activerecord-hackery/ransack#search-matchers
+
+#### Sort order - optional
+
+```
+'q[s]' + attribute + '%20' + order
+```
+
+order can be `desc` or `asc`
+
+### Paging - optional
+
+```
+'page=' + number
+```
+
+```
+Request
+  Method:   GET
+  URL:      /items
+
+  Optional Filter
+    QUERY:  q[attribute_predicate]=value
+    SORT:   q[s]=attribute%20desc
+
+Response:
+
+  Headers:
+            Current-Page: The page that was returned
+            Page-Items:   Number of items per page
+            Total-Pages:  Total number of pages
+            Total-Count:  Total number of scores
+
+  Body:     "[
+              {
+                "id": "ITEM_UUID",
+                "name": "ITEMS_NAME",
+                "price": PRICE_PER_ITEM,
+                "quantity": NUMBER_OF_ITEMS_IN_STOCK
+                "sales": REVENUE_FROM_ITEM_SALES,
+                "created_at": "TIME_ITEM_WAS_ADDED",
+                "updated_at": "LAST_UPDATE_TIME",
+              }
+              ...
+            ]"
+```
+#### Usage
+
+* Getting the first page of items whose name start with 'choc' in ascending alphabetic order.
+
+```console
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X GET -G http://localhost:3000/sales \
+        -d "page=1&q[name_start]=choc&q[s]=name%20asc" | jq
+```

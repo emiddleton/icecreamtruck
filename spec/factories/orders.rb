@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :order do
     name { Faker::Name.name }
-
+    request_id { Faker::Internet.uuid }
     order_items do
       Array.new(Faker::Number.within(range: 1..4)) { association(:order_item) }
     end

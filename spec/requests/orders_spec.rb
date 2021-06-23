@@ -8,12 +8,12 @@ RSpec.describe 'Orders', type: :request do
   include_context 'items'
 
   def sent_json(order)
-    order.to_json(root: true, only: %i[name], method: :payment,
+    order.to_json(root: true, only: %i[name request_id], method: :payment,
                   include: { order_items: { only: %i[item_id quantity] }, payment: {} })
   end
 
   def expected_json(order)
-    order.to_json(include: { order_items: { only: %i[item_id quantity] } })
+    order.to_json(include: { order_items: { only: %i[item_id name quantity] } })
   end
 
   describe 'POST /orders' do
@@ -24,6 +24,20 @@ RSpec.describe 'Orders', type: :request do
         expect(response.body).to be_json_eql(expected_json(order)).excluding(
           'status', 'transaction_id'
         )
+      end
+    end
+
+    context 'with a duplicate order' do
+      it 'returns the order' do
+        order = build(:order)
+        order.handle_payment!
+
+        post_json '/orders', sent_json(order), :conflict
+        expect(response.body).to be_json_eql(%(
+          {
+            "message": "This order has already been received."
+          }
+        ))
       end
     end
 
@@ -81,6 +95,45 @@ RSpec.describe 'Orders', type: :request do
     end
   end
 
+  describe 'PUT /orders/:id/complete' do
+    context 'when order.status is :payed' do
+      it 'will succeed' do
+        order = build(:order)
+        order.handle_payment!
+        put "/orders/#{order.id}/complete", headers: json_headers
+        expect(response).to have_http_status(status)
+      end
+    end
+
+    context 'when order.status is :completed' do
+      it 'will fail' do
+        order = build(:order)
+        order.handle_payment!
+        order.complete_sale!
+        put_json "/orders/#{order.id}/complete", nil, :unprocessable_entity
+        expect(response.body).to be_json_eql(%(
+          {
+            "message": "Validation failed: Already completed."
+          }
+        ))
+      end
+    end
+
+    context 'when order.status is not payed' do
+      it 'will fail' do
+        order = build(:order)
+        order.handle_payment!
+        order.update_attribute(:status, :paying)
+        put_json "/orders/#{order.id}/complete", nil, :unprocessable_entity
+        expect(response.body).to be_json_eql(%(
+          {
+            "message": "Validation failed: Payment must be completed."
+          }
+        ))
+      end
+    end
+  end
+
   describe 'PUT /orders/:id/cancel' do
     context 'when order.status is :payed' do
       it 'will succeed' do
@@ -88,6 +141,7 @@ RSpec.describe 'Orders', type: :request do
         order.handle_payment!
         put_json "/orders/#{order.id}/cancel"
       end
+
       it 'will succeed' do
         order = build(:order)
         order.handle_payment!
@@ -95,19 +149,22 @@ RSpec.describe 'Orders', type: :request do
         put_json "/orders/#{order.id}/cancel"
       end
     end
-    context 'when order.status is :completed' do
-      context 'when changed to :canceled' do
-        it 'will succeed'
-      end
-    end
   end
 
   describe 'GET /orders' do
-    context 'when there are orders' do
-      it 'returns all registered items'
-    end
-    context 'when there are many orders' do
-      it 'returns the first 20 registered items'
+    it 'returns all registered items' do
+      order = build(:order)
+      order.handle_payment!
+      order.complete_sale!
+      get_json '/orders'
+      expect(response.body).to have_json_path('0/id')
+      expect(response.body).to have_json_path('0/name')
+      expect(response.body).to have_json_path('0/request_id')
+      expect(response.body).to have_json_path('0/transaction_id')
+      expect(response.body).to have_json_path('0/status')
+      expect(response.body).to have_json_path('0/order_items/0/item_id')
+      expect(response.body).to have_json_path('0/order_items/0/name')
+      expect(response.body).to have_json_path('0/order_items/0/quantity')
     end
   end
 end

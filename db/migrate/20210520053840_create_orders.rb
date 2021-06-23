@@ -17,11 +17,13 @@ class CreateOrders < ActiveRecord::Migration[6.1]
         id uuid DEFAULT gen_random_uuid() NOT NULL,
         name TEXT NOT NULL,
         status public.order_status NOT NULL,
+        request_id uuid NOT NULL,
         transaction_id uuid DEFAULT gen_random_uuid() NOT NULL,
         created_at TIMESTAMP(6) WITHOUT TIME ZONE NOT NULL,
         updated_at TIMESTAMP(6) WITHOUT TIME ZONE NOT NULL
       );
 
+      CREATE UNIQUE INDEX index_unique_order ON public.orders USING btree (request_id);
       ALTER TABLE ONLY public.orders ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
     SQL
   end

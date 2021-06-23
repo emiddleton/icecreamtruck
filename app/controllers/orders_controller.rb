@@ -21,8 +21,8 @@ class OrdersController < ApplicationController
   # PUT /orders/:id/complete
   def complete
     order = Order.find(params[:id])
-    order.complete!
-    render json: order_json(order), status: :ok
+    order.complete_sale!
+    head :no_content
   end
 
   # PUT /orders/:id/cancel
@@ -35,13 +35,13 @@ class OrdersController < ApplicationController
   private
 
   def order_json(order)
-    order.to_json(include: { order_items: { only: %i[item_id quantity] } })
+    order.to_json(include: { order_items: { only: %i[name item_id quantity] } })
   end
 
   def order_params
     params.require(:order).tap do |p|
       p[:order_items_attributes] = p.delete(:order_items)
-    end.permit(:name, order_items_attributes: %i[item_id quantity],
-                      payment: %i[card_number expiry_date])
+    end.permit(:name, :request_id, order_items_attributes: %i[item_id quantity],
+                                   payment: %i[card_number expiry_date])
   end
 end
