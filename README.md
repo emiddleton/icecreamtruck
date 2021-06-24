@@ -124,12 +124,12 @@ docker-compose kill && \
 The API has six endpoints listed below.  The API calls are document in more detail below.
 ```
         Prefix Verb URI Pattern                    Controller#Action
-  cancel_order PUT  /orders/:id/cancel(.:format)   orders#cancel
-complete_order PUT  /orders/:id/complete(.:format) orders#complete
-        orders GET  /orders(.:format)              orders#index
-               POST /orders(.:format)              orders#create
-         items GET  /items(.:format)               items#index
-         sales GET  /sales(.:format)               items#sales
+  cancel_order PUT  /orders/:id/cancel(.:format)   orders#cancel    Cancel an order
+complete_order PUT  /orders/:id/complete(.:format) orders#complete  Mark an order as Delivered to customer
+        orders GET  /orders(.:format)              orders#index     List all orders with filters/sorting/paging
+               POST /orders(.:format)              orders#create    Create a new order
+         items GET  /items(.:format)               items#index      List all items with filters/sorting/paging
+         sales GET  /sales(.:format)               items#sales      List all items sales with filters/sorting/paging
 ```
 
 All requests should use the following headers
@@ -206,7 +206,7 @@ Response:
 ```console
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X GET -G http://localhost:3000/items \
+        -X GET -G http://localhost/items \
         -d "page=1&q[name_start]=choc&q[s]=name%20asc" | jq
 ```
 
@@ -283,7 +283,7 @@ curl -v -H "Accept: application/json" \
             "card_number":"6771-8981-0384-7613",
             "expiry_date":"27-03"
           }}}' \
-        http://localhost:3000/orders | jq
+        http://localhost/orders | jq
 ```
 
 ### Get list of all orders
@@ -359,7 +359,7 @@ Response:
 ```console
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X GET -G http://localhost:3000/orders \
+        -X GET -G http://localhost/orders \
         -d "page=1&q[status_eq]=payed&q[s]=updated_at%20asc" | jq
 ```
 
@@ -394,7 +394,7 @@ Failure:
 ```console
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X PUT -G http://localhost:3000/orders/[ORDER_UUID]/complete | jq
+        -X PUT -G http://localhost/orders/[ORDER_UUID]/complete | jq
 ```
 
 ### Cancel order by id
@@ -443,7 +443,7 @@ Response:
 ```console
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X PUT -G http://localhost:3000/orders/[ORDER_UUID]/cancel | jq
+        -X PUT -G http://localhost/orders/[ORDER_UUID]/cancel | jq
 ```
 
 ### Get list of sales by item
@@ -513,6 +513,6 @@ Response:
 ```console
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X GET -G http://localhost:3000/sales \
+        -X GET -G http://localhost/sales \
         -d "page=1&q[name_start]=choc&q[s]=name%20asc" | jq
 ```
