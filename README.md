@@ -37,7 +37,7 @@ docker run -e POSTGRES_USER=developer \
 When this completes you will need to create the initial database with
 
 ```console
-rails db:create db:migrate
+rails db:create db:migrate db:seed
 ```
 
 ### What to do if you have an existing postgresql server running
@@ -74,7 +74,7 @@ development_default: &development_default
 When this completes you will need to create the initial database with
 
 ```console
-rails db:create db:migrate
+rails db:create db:migrate db:seed
 ```
 
 ## Running Tests
@@ -86,7 +86,7 @@ Tests are implemented in `rspec`.  To run all test type `rspec` in the source ro
 You can run the application locally using docker-compose with the following command which will start the application in a production like environment, using its own database and exposing an API on localhost port 80
 
 ```console
-docker-compose run web-api rails db:create db:migrate && \
+docker-compose run web-api rails db:create db:migrate db:seed && \
   docker-compose up
 ```
 
