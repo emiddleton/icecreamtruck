@@ -2,5 +2,6 @@
 
 class ApplicationController < ActionController::API
   include Pagy::Backend
+  include Pagy::Frontend
   include ExceptionHandler
 end
