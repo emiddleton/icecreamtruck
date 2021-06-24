@@ -15,6 +15,10 @@ module ExceptionHandler
       render json: { message: 'This order has already been received.' }, status: :conflict
     end
 
+    rescue_from PaymentException do |e|
+      render json: { message: e.message }, status: :unprocessable_entity
+    end
+
     rescue_from ActiveRecord::RecordInvalid do |e|
       render json: { message: e.message }, status: :unprocessable_entity
     end

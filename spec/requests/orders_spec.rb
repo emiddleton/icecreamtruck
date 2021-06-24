@@ -141,7 +141,8 @@ RSpec.describe 'Orders', type: :request do
         order.handle_payment!
         put_json "/orders/#{order.id}/cancel"
       end
-
+    end
+    context 'when order.status is :completed' do
       it 'will succeed' do
         order = build(:order)
         order.handle_payment!
